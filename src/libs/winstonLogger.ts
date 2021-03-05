@@ -1,6 +1,6 @@
-import * as winston from 'winston';
-import * as expressWinston from 'express-winston';
-/*
+import { Request, Response, NextFunction } from "express"; // eslint-disable-line
+import { format, transports, createLogger } from 'winston';
+
 const {combine, timestamp, label, printf} = format;
 
 // Logging levels severity from most important (error) to least important.
@@ -15,10 +15,10 @@ const myFormat = printf(({level, message, label, timestamp}) => {
 // define the custom settings for each transport (file, console)
 const options = {
   file: {
-    level: 'info',
+    level: 'error',
     filename: `${process.env.PWD}/storage/logs/app.log`,
     handleExceptions: true,
-    maxsize: 5242880, // 5MB
+    maxsize: 500_000, // 500KB
     maxFiles: 5,
   },
   console: {
@@ -28,7 +28,7 @@ const options = {
 };
 
 // instantiate a new Winston Logger with the settings defined above
-const logger: any = createLogger({
+export const logger: any = createLogger({
   transports: [
     new transports.File(options.file),
   ],
@@ -43,40 +43,35 @@ const logger: any = createLogger({
       myFormat,
   ),
   // format: format.combine(format.splat(), format.simple()),
-  // level: 'info', // Log only if level is less than or equal to this level
+  level: 'debug', // Log only if level is less than or equal to this level
 });
 
-    if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production') {
+  // Arriba defines los transports y aca seteas el que vas a usar
+  // Esto se puede cambiar on runtime en cualquier otra parte
   logger.add(new transports.Console(options.console));
-  // logger.remove(file);
+// logger.remove(file); // puedes remover el logger on runtime
 }
-*/
 
-const logger = expressWinston.logger({
-  transports: [
-    new winston.transports.File({
-      level: 'info',
-      filename: `${process.env.PWD}/storage/logs/app.log`,
-      handleExceptions: true,
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-    new winston.transports.Console({
-      level: 'debug',
-      handleExceptions: true,
-    }),
-  ],
-  format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.json(),
-  ),
-  meta: true,
-  msg: 'HTTP {{req.method}} {{req.url}}',
-  expressFormat: true,
-  colorize: false,
-  ignoreRoute: function(req, res) {
-    return false;
-  },
-});
+export const loggerMid = (message: string) => (
+  (req: Request, res: Response, next: NextFunction) => {
+    logger.debug(message);
+    next();
+  }
+);
 
-export default logger;
+
+// ignore specified routes
+// app.use(unless('/example_route', middleware));
+
+const unless = (ignorePaths: string[], middleware: Function) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+      ignorePaths.forEach(path => {
+        if (path === req.baseUrl) {
+            return next();
+        } else {
+            return middleware(req, res, next);
+        }
+      });
+    };
+};

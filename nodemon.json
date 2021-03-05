@@ -3,8 +3,8 @@
   "ignore": ["*.spec.ts", "fixtures/*"],
   "delay": 1500,
   "events": {
-    "start": "npm run lint:fix",
-    "restart": "npm run lint",
+    "start": "",
+    "restart": "",
     "crash": "",
     "exit": "kill-port 4444"
   }
